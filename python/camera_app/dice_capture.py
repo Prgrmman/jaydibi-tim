@@ -11,11 +11,13 @@ import cv2
 from imutils.video import VideoStream
 import time
 import pdb
+import os
 
 # Most of the code is stolen from https://www.pyimagesearch.com/2016/05/30/displaying-a-video-feed-with-opencv-and-tkinter/
 
 # Globals
 DiceTypes = {'d4', 'd6', 'd8', 'd10', 'd12', 'd20'}
+DEFAULT_PATH = '/tmp/dice_photos'
 
 class DiceApp:
     def __init__(self, app_name, vs):
@@ -38,6 +40,12 @@ class DiceApp:
         self.frame = None
         self.thread = None
         self.stopEvent = None
+        self.folder_path = DEFAULT_PATH
+
+        # Count the number of photos taken of each dice
+        self.dice_counts = {}
+        for dice in DiceTypes:
+            self.dice_counts[dice] = 0
 
         self.root.title(self.app_name)
         self.dice_choice = tk.StringVar(self.root)
@@ -61,12 +69,26 @@ class DiceApp:
             print (self.dice_choice.get())
         self.dice_choice.trace('w', dice_menu_on_change)
 
-        #add a button
-        b = tk.Button(self.root, text="OK", command=self.take_pic)
-        b.grid(row=4, column = 1, sticky = 's')
+        #add a button to take the picture
+        capure_button = tk.Button(self.root, text="Capture", command=self.take_pic)
+        capure_button.grid(row=4, column = 1, sticky = 's')
 
         # Setup clean up when the app is closed
         self.root.wm_protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def init_pic_directory(self):
+        """ Create the tree folder structure if it doesn't already exist """
+        def mkdir_p(path):
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+        my_path = self.folder_path
+        mkdir_p(my_path)
+
+        for dice in DiceTypes:
+            dice_path = os.path.join(my_path, dice)
+            mkdir_p(dice_path)
+
 
     def video_loop(self):
         try:
@@ -91,10 +113,32 @@ class DiceApp:
             print("[INFO] caught a RuntimeError")
 
     def take_pic(self):
-        print("take pic")
+
+        my_path = self.folder_path
+        dice_choice = self.dice_choice.get()
+        dice_dir = os.path.join(my_path, dice_choice)
+
+
+        # looks at an already populated directory of dice images
+        # and finds the next file name. Do this only once for each
+        # dice directory
+        if self.dice_counts[dice_choice] == 0:
+            files = next(os.walk(dice_dir))[2]
+            self.dice_counts[dice_choice] = len(files)
+
+        file_name = str(self.dice_counts[dice_choice]) + '.jpg'
+        file_name = os.path.join(dice_dir, file_name)
+        cv2.imwrite(file_name, self.frame.copy())
+        print("saved {}".format(file_name))
+        # TODO could have error checking here to see if I wrote the file
+        self.dice_counts[dice_choice] += 1
+        
+        
+    
 
     def run(self):
         """ Run the app """
+        self.init_pic_directory()
         self.stopEvent = threading.Event()
         self.thread = threading.Thread(target=self.video_loop, args=())
         self.thread.start()
@@ -117,9 +161,6 @@ def main(args):
     # main window
     print("App closed?")
 
-
-
-    # Add radio button
 
 if __name__ == '__main__':
     main(sys.argv)
