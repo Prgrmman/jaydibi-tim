@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import tkinter as tk
+from tkinter import messagebox
 import sys
 import threading
 import datetime
@@ -19,6 +20,10 @@ import os
 DiceTypes = {'d4', 'd6', 'd8', 'd10', 'd12', 'd20'}
 DEFAULT_PATH = '/tmp/dice_photos'
 
+def get_dice_max(dice_key):
+    ''' Return the max int value of a dice key (e.g d4 is 4) '''
+    return int(dice_key[1:])
+
 class DiceApp:
     def __init__(self, app_name, vs):
         """ Constructor 
@@ -28,6 +33,7 @@ class DiceApp:
             @vs (video stream): video stream
             @frame: most recently read frame from the camera
             @panel: tk image panel to display the frame
+            @dice_entry: tk text entry field for dice value
             @thread: the thread handling the video stream
             @stop_event: stop event for the thread
             @dice_choice (tkinter.StringVar) selected dice type
@@ -42,10 +48,13 @@ class DiceApp:
         self.stopEvent = None
         self.folder_path = DEFAULT_PATH
 
-        # Count the number of photos taken of each dice
+        # Count the number of photos taken of each dice at a given value
         self.dice_counts = {}
         for dice in DiceTypes:
-            self.dice_counts[dice] = 0
+            value_dict = {}
+            for value in range(1, get_dice_max(dice) + 1):
+                value_dict[value] = 0
+            self.dice_counts[dice] = value_dict
 
         self.root.title(self.app_name)
         self.dice_choice = tk.StringVar(self.root)
@@ -56,7 +65,7 @@ class DiceApp:
         main_frame = tk.Frame(self.root)
         self.root.columnconfigure(0, weight = 1)
         #main_frame.pack(pady = 100, padx = 100)
-        for i in range(4):
+        for i in range(6):
             self.root.columnconfigure(i, weight=1)
             self.root.rowconfigure(i, weight = 1)
 
@@ -69,9 +78,14 @@ class DiceApp:
             print (self.dice_choice.get())
         self.dice_choice.trace('w', dice_menu_on_change)
 
+        # Add a label and a dice value entry field.
+        tk.Label(self.root, text="Dice value").grid(row=4, column = 1)
+        self.dice_entry = tk.Entry(self.root, text="1")
+        self.dice_entry.grid(row=5, column = 1)
+
         #add a button to take the picture
         capure_button = tk.Button(self.root, text="Capture", command=self.take_pic)
-        capure_button.grid(row=4, column = 1, sticky = 's')
+        capure_button.grid(row=6, column = 1, sticky = 's')
 
         # Setup clean up when the app is closed
         self.root.wm_protocol("WM_DELETE_WINDOW", self.on_close)
@@ -88,9 +102,13 @@ class DiceApp:
         for dice in DiceTypes:
             dice_path = os.path.join(my_path, dice)
             mkdir_p(dice_path)
+            for value in range(1, get_dice_max(dice) + 1):
+                value_path = os.path.join(dice_path, str(value))
+                mkdir_p(value_path)
 
 
     def video_loop(self):
+        ''' Internal method designed to update the image preview '''
         try:
             while not self.stopEvent.is_set():
                 self.frame = self.vs.read()
@@ -113,28 +131,40 @@ class DiceApp:
             print("[INFO] caught a RuntimeError")
 
     def take_pic(self):
+        ''' Capture and store the current picture in the preview '''
 
         my_path = self.folder_path
         dice_choice = self.dice_choice.get()
+        dice_value = self.dice_entry.get()
+        try:
+            dice_value = int(dice_value)
+        except ValueError:
+            messagebox.showerror(title="Dice value error", message="please enter the number shown on the dice")
+            return
+
+        if not (0 < dice_value and dice_value <= get_dice_max(dice_choice)):
+            messagebox.showerror(title="Dice value error", message="Dice value is out or range for dice type")
+            return
+
         dice_dir = os.path.join(my_path, dice_choice)
+        dice_dir = os.path.join(dice_dir, str(dice_value))
 
 
         # looks at an already populated directory of dice images
         # and finds the next file name. Do this only once for each
         # dice directory
-        if self.dice_counts[dice_choice] == 0:
+        if self.dice_counts[dice_choice][dice_value] == 0:
             files = next(os.walk(dice_dir))[2]
-            self.dice_counts[dice_choice] = len(files)
+            self.dice_counts[dice_choice][dice_value] = len(files)
 
-        file_name = str(self.dice_counts[dice_choice]) + '.jpg'
+        file_name = str(self.dice_counts[dice_choice][dice_value]) + '.jpg'
         file_name = os.path.join(dice_dir, file_name)
         cv2.imwrite(file_name, self.frame.copy())
         print("saved {}".format(file_name))
         # TODO could have error checking here to see if I wrote the file
-        self.dice_counts[dice_choice] += 1
+        self.dice_counts[dice_choice][dice_value] += 1
+
         
-        
-    
 
     def run(self):
         """ Run the app """
