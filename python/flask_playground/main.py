@@ -1,6 +1,10 @@
+## Imports
+import json
 # quick mess-around area for learning flask
 # Using https://www.tutorialspoint.com/flask/flask_application.htm as reference
 
+## Global defines
+CONFIG_FILE='server_config.json'
 
 from flask import Flask
 app = Flask(__name__)
@@ -13,21 +17,12 @@ def hello_world():
 def give_me_pizza():
     return 'Have some pizza!'
 
-def meta_test(count):
-    """
-    Just a stupid decorator that takes a parameter
-    I'm trying to see what I can do with it
-    """
-    def decorate(func):
-        def inner(*args, **kwargs):
-            for i in range(count):
-                print('run the function {}'.format(i))
-                func(*args, **kwargs)
-        return inner
-    return decorate
-                
+def run_app(use_reloader=True):
+    with open(CONFIG_FILE) as f:
+        config = json.load(f)
+    app.run(debug=config['debug'], port=config['port'], host='0.0.0.0',
+            use_reloader=use_reloader)
 
 
-# actually run the script
 if __name__ == '__main__':
-    app.run(debug=True, port=8080, host='0.0.0.0')
+    run_app()

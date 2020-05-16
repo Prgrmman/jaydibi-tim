@@ -7,10 +7,11 @@ verify_ssl = true
 
 [packages]
 flask = "*"
+requests = "*"
 
 [scripts]
 app = "python main.py"
-tests = "echo \"TODO add tests\""
+test = "python test.py -v --failfast"
 
 [requires]
 python_version = "3.7"
