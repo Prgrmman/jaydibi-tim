@@ -30,6 +30,23 @@ class ServiceClient:
         ''' Send a get request to the service '''
         return requests.get(self._baseurl + resource)
 
+    def wait_server_active(self, time_limit):
+        """ Send a ping for time_limit until you get a response
+            Returns True if we can ping
+        """
+        get_time = lambda: int(time.time())
+        start_time = get_time()
+        connected = False
+        while get_time() - start_time < time_limit:
+            try:
+                r = self.get('/ping')
+                connected = r.status_code == 200
+                break
+            except requests.exceptions.ConnectionError as e:
+                # If we get a Connection error, retry
+                pass
+        return connected
+
 class Server:
     ''' A wrapper around the web server. Meant to be run in the background '''
     def __init__(self):
@@ -39,7 +56,6 @@ class Server:
         ''' Start the server '''
         print('Starting service...')
         self._process.start()
-        time.sleep(2)
 
     def stop(self):
         ''' Stop the server '''
@@ -47,7 +63,7 @@ class Server:
         self._process.join()
 
     def is_alive(self):
-        ''' Test if the server is alive'''
+        ''' Test if the server process is alive'''
         # TODO Considering a heart beat to the service instead of 
         # process status
         return self._process.is_alive()
@@ -68,6 +84,7 @@ class TestBasicServices(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         server.start()
+        client.wait_server_active(2)
 
     @classmethod
     def tearDownClass(cls):

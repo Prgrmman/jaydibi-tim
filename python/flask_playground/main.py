@@ -13,6 +13,10 @@ app = Flask(__name__)
 def hello_world():
     return 'Hello World'
 
+@app.route('/ping')
+def ping():
+    return 'Pong'
+
 @app.route('/pizza')
 def give_me_pizza():
     return 'Have some pizza!'
