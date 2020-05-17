@@ -17,6 +17,7 @@ class ServiceClient:
         with open(CONFIG_FILE) as f:
             self._config = json.load(f)
         self._baseurl = 'http://{}:{}'.format(self.address, self.port)
+        self._connected = False
 
     # Property definitions
     @property
@@ -36,16 +37,15 @@ class ServiceClient:
         """
         get_time = lambda: int(time.time())
         start_time = get_time()
-        connected = False
         while get_time() - start_time < time_limit:
             try:
                 r = self.get('/ping')
-                connected = r.status_code == 200
+                self._connected = r.status_code == 200
                 break
             except requests.exceptions.ConnectionError as e:
                 # If we get a Connection error, retry
                 pass
-        return connected
+        return self._connected
 
 class Server:
     ''' A wrapper around the web server. Meant to be run in the background '''
@@ -109,6 +109,13 @@ class TestBasicServices(unittest.TestCase):
         ''' Test pizza GET '''
         r = client.get('/pizza')
         self.assertEqual(r.text, 'Have some pizza!')
+
+    def test_big_pizza(self):
+        ''' Test a 100 pizza requests '''
+        for i in range(100):
+            r = client.get('/pizza')
+            self.assertEqual(r.text, 'Have some pizza!')
+
 
 
 def main():
