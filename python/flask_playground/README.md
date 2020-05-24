@@ -12,4 +12,4 @@ pipenv install
 ```
 
 When doing this at the time (May 2020), I found that the python package maintained by the termux environment was only at 3.6.
-To get around this problem
+To get around this problem, you can edit the lock file, but don't commit it.
