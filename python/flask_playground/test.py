@@ -4,6 +4,7 @@ unittest.TestLoader.sortTestMethodsUsing = None
 import json
 import time
 from multiprocessing import Process
+import random
 import os
 import sys
 from main import run_app
@@ -27,9 +28,9 @@ class ServiceClient:
     def address(self):
         return self._config['address']
 
-    def get(self, resource):
+    def get(self, resource, **kwargs):
         ''' Send a get request to the service '''
-        return requests.get(self._baseurl + resource)
+        return requests.get(self._baseurl + resource, **kwargs)
 
     def wait_server_active(self, time_limit):
         """ Send a ping for time_limit until you get a response
@@ -103,19 +104,42 @@ class TestBasicServices(unittest.TestCase):
         ''' Test basic GET request '''
         r = client.get('/')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.text, 'Hello World')
+        self.assertEqual(r.text, "Hello World")
 
     def test_pizza(self):
         ''' Test pizza GET '''
         r = client.get('/pizza')
-        self.assertEqual(r.text, 'Have some pizza!')
+        self.assertEqual(r.text, "Have some pizza!")
 
     def test_big_pizza(self):
         ''' Test a 100 pizza requests '''
         for i in range(100):
             r = client.get('/pizza')
-            self.assertEqual(r.text, 'Have some pizza!')
+            self.assertEqual(r.text, "Have some pizza!")
 
+    def test_variable_name(self):
+        ''' Test variable get request '''
+        name = "Clark Kent"
+        r = client.get('/hello/{}'.format(name))
+        self.assertEqual(r.text, "Hello {}".format(name))
+
+    def test_increment(self):
+        ''' Ask for a number, get that number plus one...exciting!'''
+        random.seed()
+        num = random.choice(range(100))
+        r = client.get('/increment/{}'.format(num))
+        new_num = int(r.text)
+        self.assertEqual(num + 1, new_num)
+
+    def test_redirect(self):
+        '''Send a request to hello, and get redirected for pizza'''
+        name = "Pizza"
+        r = client.get('/hello/{}'.format(name))
+        self.assertEqual(r.text, "Have some pizza!")
+
+    def test_form_data(self):
+        '''Issue a post request '''
+        pass
 
 
 def main():

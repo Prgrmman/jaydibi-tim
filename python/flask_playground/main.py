@@ -6,20 +6,36 @@ import json
 ## Global defines
 CONFIG_FILE='server_config.json'
 
-from flask import Flask
+from flask import Flask, redirect, url_for, request
 app = Flask(__name__)
 
 @app.route('/')
 def hello_world():
-    return 'Hello World'
+    return "Hello World"
 
 @app.route('/ping')
 def ping():
-    return 'Pong'
+    return "Pong"
 
 @app.route('/pizza')
 def give_me_pizza():
-    return 'Have some pizza!'
+    return "Have some pizza!"
+
+@app.route('/hello/<name>')
+def say_hi(name):
+    if name.lower() == 'pizza':
+        # do a redirect to give_me_pizza
+        return redirect(url_for('give_me_pizza'))
+    return "Hello {}".format(name)
+
+@app.route('/increment/<int:num>')
+def increment(num):
+    return '{}'.format(num + 1)
+
+@app.route('/order/', methods = ['POST', 'GET'])
+def order():
+    pass
+
 
 def run_app(use_reloader=True):
     with open(CONFIG_FILE) as f:
