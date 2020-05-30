@@ -1,0 +1,10 @@
+<html>
+   <head>
+      <script type = "text/javascript"
+         src = "{{ url_for('static', filename = 'orders.js') }}" ></script>
+   </head>
+
+   <body>
+     <marquee><input type = "button" onclick = "sayOrder({{orders}})" value = "how many"/></marquee>
+   </body>
+</html>

@@ -6,7 +6,7 @@ import json
 ## Global defines
 CONFIG_FILE='server_config.json'
 
-from flask import Flask, redirect, url_for, request
+from flask import Flask, redirect, url_for, request, render_template
 app = Flask(__name__)
 
 @app.route('/')
@@ -32,8 +32,13 @@ def say_hi(name):
 def increment(num):
     return '{}'.format(num + 1)
 
-@app.route('/order/', methods = ['POST', 'GET'])
+@app.route('/order', methods = ['POST', 'GET'])
 def order():
+    """ Dummy function to order pizza using static file serving
+        and templates.
+    """
+    if request.method == 'POST':
+        return render_template("order_placed.html", orders = request.form['orders'])
     pass
 
 
