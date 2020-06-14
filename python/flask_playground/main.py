@@ -6,8 +6,11 @@ import json
 ## Global defines
 CONFIG_FILE='server_config.json'
 
-from flask import Flask, redirect, url_for, request, render_template
+from flask import Flask, redirect, url_for, request, render_template, session
 app = Flask(__name__)
+
+# needed to sign session date stored on the client.
+app.config['SECRET_KEY'] = 'not a real secret'
 
 @app.route('/')
 def hello_world():
@@ -19,7 +22,10 @@ def ping():
 
 @app.route('/pizza')
 def give_me_pizza():
-    return "Have some pizza!"
+    if not 'count' in session:
+        session['count'] = 0
+    session['count'] += 1
+    return "Have some pizza! Count is {}".format(session['count'])
 
 @app.route('/hello/<name>')
 def say_hi(name):
@@ -39,6 +45,8 @@ def order():
     """
     if request.method == 'POST':
         return render_template("order_placed.html", orders = request.form['orders'])
+    if request.method == 'GET':
+        return render_template("order_placed.html", orders = request.args.get('orders'))
     pass
 
 
